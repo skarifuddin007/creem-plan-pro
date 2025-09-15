@@ -1,8 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Check } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Pricing = () => {
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  
   const features = [
     "Unlimited projects",
     "Advanced analytics",
@@ -30,8 +35,58 @@ const Pricing = () => {
         </div>
       </div>
 
-      {/* Pricing Card */}
-      <div className="mx-auto max-w-md px-6 pb-20">
+      {/* Free Plan Card */}
+      <div className="mx-auto max-w-4xl px-6 pb-20">
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Free Plan */}
+          <Card className="relative overflow-hidden">
+            <CardHeader className="text-center pb-8">
+              <h2 className="text-2xl font-bold text-card-foreground">Free Plan</h2>
+              <div className="mt-4">
+                <span className="text-5xl font-bold text-muted-foreground">$0</span>
+                <span className="text-muted-foreground">/month</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Perfect for getting started
+              </p>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                  <span className="text-sm text-card-foreground">Basic features</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                  <span className="text-sm text-card-foreground">Limited projects</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-primary" />
+                  </div>
+                  <span className="text-sm text-card-foreground">Community support</span>
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter className="pt-6">
+              <Button 
+                variant={profile?.subscription_plan === 'free' ? 'default' : 'outline'}
+                size="lg" 
+                className="w-full"
+                disabled={profile?.subscription_plan === 'free'}
+              >
+                {profile?.subscription_plan === 'free' ? 'Current Plan' : 'Downgrade to Free'}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Pro Plus Plan */}
         <Card className="relative overflow-hidden shadow-premium border-2 border-primary/20 bg-gradient-to-b from-card to-primary/5">
           {/* Popular Badge */}
           <div className="absolute -right-10 top-6 rotate-45 bg-accent px-12 py-1 text-xs font-semibold text-accent-foreground">
@@ -70,14 +125,33 @@ const Pricing = () => {
               size="lg" 
               className="w-full"
               onClick={() => {
-                // This will show the payment integration message
-                alert("Payment integration requires backend setup. Please connect Supabase first for secure payment processing.");
+                if (!user) {
+                  toast({
+                    title: "Sign in required",
+                    description: "Please sign in to upgrade your plan.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                if (profile?.subscription_plan === 'pro_plus') {
+                  toast({
+                    title: "Already subscribed",
+                    description: "You're already on the Pro Plus plan!",
+                  });
+                  return;
+                }
+                
+                // Redirect to Creem.io payment with user email
+                const paymentUrl = `https://www.creem.io/test/payment/prod_4WeSl7nk5ZvdJJFGuw6e1m?customer_email=${encodeURIComponent(user.email || '')}`;
+                window.open(paymentUrl, '_blank');
               }}
             >
-              Get Started with Pro Plus
+              {profile?.subscription_plan === 'pro_plus' ? 'Current Plan' : 'Get Started with Pro Plus'}
             </Button>
           </CardFooter>
-        </Card>
+          </Card>
+        </div>
 
         {/* Additional Info */}
         <div className="mt-8 text-center">
