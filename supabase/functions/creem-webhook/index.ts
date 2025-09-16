@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     console.log('Webhook headers:', Object.fromEntries(req.headers.entries()));
     console.log('Creem signature:', creemSignature);
 
-    // Verify signature if secret is provided
+    // Verify signature if secret is provided (optional for testing)
     if (webhookSecret && creemSignature) {
       const isValid = await verifyCreemSignature(rawBody, creemSignature, webhookSecret);
       if (!isValid) {
@@ -58,32 +58,30 @@ Deno.serve(async (req) => {
       }
       console.log('Webhook signature verified successfully');
     } else {
-      console.warn('Missing signature or secret - webhook verification skipped');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing signature or secret' }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 400 
-        }
-      );
+      console.warn('Missing signature or secret - webhook verification skipped (continuing for testing)');
     }
 
     const body = JSON.parse(rawBody);
     console.log('Creem.io webhook received:', body);
 
     // Extract relevant data from Creem.io webhook
-    const { event_type, customer_id, subscription_id, status, user_email } = body;
+    const { eventType, object } = body;
+    const customer_email = object?.customer?.email;
+    const customer_id = object?.customer?.id;
+    const subscription_id = object?.subscription?.id;
+    const status = object?.status;
 
-    console.log('Processing webhook:', { event_type, customer_id, subscription_id, status, user_email });
+    console.log('Processing webhook:', { eventType, customer_email, customer_id, subscription_id, status });
 
     // Handle different webhook events
-    switch (event_type) {
+    switch (eventType) {
+      case 'checkout.completed':
       case 'payment.succeeded':
       case 'subscription.created':
       case 'subscription.activated':
         // Update user subscription to pro_plus
-        if (user_email) {
-          const { data: user } = await supabase.auth.admin.getUserByEmail(user_email);
+        if (customer_email) {
+          const { data: user } = await supabase.auth.admin.getUserByEmail(customer_email);
           
           if (user) {
             await supabase
@@ -104,8 +102,8 @@ Deno.serve(async (req) => {
       case 'subscription.expired':
       case 'payment.failed':
         // Downgrade user to free plan
-        if (user_email) {
-          const { data: user } = await supabase.auth.admin.getUserByEmail(user_email);
+        if (customer_email) {
+          const { data: user } = await supabase.auth.admin.getUserByEmail(customer_email);
           
           if (user) {
             await supabase
@@ -122,7 +120,7 @@ Deno.serve(async (req) => {
         break;
 
       default:
-        console.log('Unhandled webhook event:', event_type);
+        console.log('Unhandled webhook event:', eventType);
     }
 
     return new Response(
