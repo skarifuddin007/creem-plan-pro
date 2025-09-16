@@ -35,10 +35,38 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get the raw body
+    // Get the raw body for signature verification
     const rawBody = await req.text();
+    const creemSignature = req.headers.get('creem-signature') || req.headers.get('x-creem-signature');
+    const webhookSecret = Deno.env.get('CREEM_WEBHOOK_SECRET');
+
     console.log('Webhook headers:', Object.fromEntries(req.headers.entries()));
-    console.log('Webhook body received:', rawBody);
+    console.log('Creem signature found:', creemSignature ? 'Yes' : 'No');
+    console.log('Webhook secret configured:', webhookSecret ? 'Yes' : 'No');
+
+    // Verify signature if both signature and secret are available
+    if (webhookSecret && creemSignature) {
+      const isValid = await verifyCreemSignature(rawBody, creemSignature, webhookSecret);
+      if (!isValid) {
+        console.error('Invalid webhook signature');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid signature' }), 
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 401 
+          }
+        );
+      }
+      console.log('Webhook signature verified successfully');
+    } else {
+      console.warn('Missing signature or secret - webhook verification skipped');
+      if (!webhookSecret) {
+        console.warn('CREEM_WEBHOOK_SECRET not configured in Supabase secrets');
+      }
+      if (!creemSignature) {
+        console.warn('No creem-signature or x-creem-signature header found');
+      }
+    }
 
     const body = JSON.parse(rawBody);
     console.log('Creem.io webhook received:', body);
