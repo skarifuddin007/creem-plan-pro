@@ -5,6 +5,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+async function verifyCreemSignature(payload: string, signature: string, secret: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  const signatureBytes = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
+  const expectedSignature = Array.from(new Uint8Array(signatureBytes))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  return signature === expectedSignature;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -17,7 +35,40 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const body = await req.json();
+    // Get the raw body for signature verification
+    const rawBody = await req.text();
+    const creemSignature = req.headers.get('creem-signature');
+    const webhookSecret = Deno.env.get('CREEM_WEBHOOK_SECRET');
+
+    console.log('Webhook headers:', Object.fromEntries(req.headers.entries()));
+    console.log('Creem signature:', creemSignature);
+
+    // Verify signature if secret is provided
+    if (webhookSecret && creemSignature) {
+      const isValid = await verifyCreemSignature(rawBody, creemSignature, webhookSecret);
+      if (!isValid) {
+        console.error('Invalid webhook signature');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid signature' }), 
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 401 
+          }
+        );
+      }
+      console.log('Webhook signature verified successfully');
+    } else {
+      console.warn('Missing signature or secret - webhook verification skipped');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing signature or secret' }), 
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
+      );
+    }
+
+    const body = JSON.parse(rawBody);
     console.log('Creem.io webhook received:', body);
 
     // Extract relevant data from Creem.io webhook
