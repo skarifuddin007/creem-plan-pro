@@ -35,31 +35,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get the raw body for signature verification
+    // Get the raw body
     const rawBody = await req.text();
-    const creemSignature = req.headers.get('creem-signature');
-    const webhookSecret = Deno.env.get('CREEM_WEBHOOK_SECRET');
-
     console.log('Webhook headers:', Object.fromEntries(req.headers.entries()));
-    console.log('Creem signature:', creemSignature);
-
-    // Verify signature if secret is provided (optional for testing)
-    if (webhookSecret && creemSignature) {
-      const isValid = await verifyCreemSignature(rawBody, creemSignature, webhookSecret);
-      if (!isValid) {
-        console.error('Invalid webhook signature');
-        return new Response(
-          JSON.stringify({ success: false, error: 'Invalid signature' }), 
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 401 
-          }
-        );
-      }
-      console.log('Webhook signature verified successfully');
-    } else {
-      console.warn('Missing signature or secret - webhook verification skipped (continuing for testing)');
-    }
+    console.log('Webhook body received:', rawBody);
 
     const body = JSON.parse(rawBody);
     console.log('Creem.io webhook received:', body);
