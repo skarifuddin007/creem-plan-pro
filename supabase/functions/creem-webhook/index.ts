@@ -88,7 +88,8 @@ Deno.serve(async (req) => {
       case 'subscription.activated':
         // Update user subscription to pro_plus
         if (customer_email) {
-          const { data: user } = await supabase.auth.admin.getUserByEmail(customer_email);
+          const { data: users } = await supabase.auth.admin.listUsers();
+          const user = users?.users?.find(u => u.email === customer_email);
           
           if (user) {
             await supabase
@@ -110,7 +111,8 @@ Deno.serve(async (req) => {
       case 'payment.failed':
         // Downgrade user to free plan
         if (customer_email) {
-          const { data: user } = await supabase.auth.admin.getUserByEmail(customer_email);
+          const { data: users } = await supabase.auth.admin.listUsers();
+          const user = users?.users?.find(u => u.email === customer_email);
           
           if (user) {
             await supabase
