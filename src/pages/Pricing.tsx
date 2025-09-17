@@ -142,9 +142,10 @@ const Pricing = () => {
                   return;
                 }
                 
-                // Redirect to Creem.io payment with user email
-                const paymentUrl = `https://www.creem.io/test/payment/prod_4WeSl7nk5ZvdJJFGuw6e1m?customer_email=${encodeURIComponent(user.email || '')}`;
-                window.open(paymentUrl, '_blank');
+                // Redirect to Creem.io payment with user email and success redirect
+                const successUrl = `${window.location.origin}/payment-success`;
+                const paymentUrl = `https://www.creem.io/test/payment/prod_4WeSl7nk5ZvdJJFGuw6e1m?customer_email=${encodeURIComponent(user.email || '')}&success_url=${encodeURIComponent(successUrl)}`;
+                window.location.href = paymentUrl;
               }}
             >
               {profile?.subscription_plan === 'pro_plus' ? 'Current Plan' : 'Get Started with Pro Plus'}

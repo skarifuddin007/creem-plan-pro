@@ -25,9 +25,9 @@ const Index = () => {
                   Welcome back! You're on the {profile?.subscription_plan || 'free'} plan
                 </p>
               </div>
-              <Link to="/pricing">
+              <Link to={profile?.subscription_plan === 'pro_plus' ? '/dashboard' : '/pricing'}>
                 <Button variant="premium" size="lg">
-                  {profile?.subscription_plan === 'pro_plus' ? 'Manage Plan' : 'Upgrade Plan'}
+                  {profile?.subscription_plan === 'pro_plus' ? 'Go to Dashboard' : 'Upgrade Plan'}
                 </Button>
               </Link>
               <Button variant="outline" size="lg" onClick={signOut}>
