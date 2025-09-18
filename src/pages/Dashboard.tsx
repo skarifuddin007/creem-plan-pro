@@ -19,9 +19,14 @@ const Dashboard = () => {
 
   // Refresh profile when dashboard loads to ensure latest subscription status
   useEffect(() => {
-    if (user && !loading) {
-      refreshProfile();
-    }
+    const refreshOnLoad = async () => {
+      if (user && !loading) {
+        console.log('Dashboard loaded, refreshing profile...');
+        await refreshProfile();
+      }
+    };
+    
+    refreshOnLoad();
   }, [user, loading, refreshProfile]);
 
   if (loading) {
