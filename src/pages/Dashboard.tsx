@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { Crown, Settings, BarChart3, Users, Shield, Zap } from "lucide-react";
 
 const Dashboard = () => {
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,6 +16,13 @@ const Dashboard = () => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  // Refresh profile when dashboard loads to ensure latest subscription status
+  useEffect(() => {
+    if (user && !loading) {
+      refreshProfile();
+    }
+  }, [user, loading, refreshProfile]);
 
   if (loading) {
     return (

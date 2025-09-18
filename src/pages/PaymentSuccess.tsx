@@ -6,7 +6,7 @@ import { CheckCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const PaymentSuccess = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [checkingStatus, setCheckingStatus] = useState(true);
@@ -22,8 +22,12 @@ const PaymentSuccess = () => {
     const checkSubscription = async () => {
       if (!user || loading) return;
 
-      // Wait a moment for the webhook to process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait for webhook to process and refresh profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await refreshProfile();
+      
+      // Wait a bit more to ensure realtime updates are processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setCheckingStatus(false);
       
