@@ -22,7 +22,29 @@ const Dashboard = () => {
     const refreshOnLoad = async () => {
       if (user && !loading) {
         console.log('Dashboard loaded, refreshing profile...');
+        
+        // Add a small delay to ensure webhook has processed
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         await refreshProfile();
+        
+        // Also poll for updates every 5 seconds for the first 30 seconds
+        // in case Realtime is delayed
+        let pollCount = 0;
+        const maxPolls = 6; // 30 seconds total
+        
+        const pollInterval = setInterval(async () => {
+          pollCount++;
+          console.log(`Polling for profile updates (${pollCount}/${maxPolls})`);
+          await refreshProfile();
+          
+          if (pollCount >= maxPolls) {
+            clearInterval(pollInterval);
+            console.log('Stopped polling for profile updates');
+          }
+        }, 5000);
+        
+        return () => clearInterval(pollInterval);
       }
     };
     

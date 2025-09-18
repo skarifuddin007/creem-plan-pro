@@ -138,8 +138,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!user) return;
 
+    console.log('Setting up Realtime listener for user:', user.id);
+    
     const channel = supabase
-      .channel('profile-changes')
+      .channel(`profile-changes-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -149,15 +151,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('Profile updated:', payload);
-          if (payload.new) {
+          console.log('Profile Realtime update received:', payload);
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            console.log('Updating profile with new data:', payload.new);
+            setProfile(payload.new);
+          } else if (payload.eventType === 'INSERT' && payload.new) {
+            console.log('New profile created:', payload.new);
             setProfile(payload.new);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up Realtime listener');
       supabase.removeChannel(channel);
     };
   }, [user]);
